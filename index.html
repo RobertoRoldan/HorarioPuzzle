@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  
- <link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#bb86fc">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="icon" type="image/png" href="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/extension/default/48px.svg">
+<link rel="apple-touch-icon" href="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/extension/default/48px.svg">
 
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registrado'))
-        .catch(err => console.log('Error al registrar SW', err));
+        .then(reg => console.log('SW registrado'))
+        .catch(err => console.error('Error SW:', err));
     });
   }
 </script>
+
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
