@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  
+ <link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registrado'))
+        .catch(err => console.log('Error al registrar SW', err));
+    });
+  }
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PuzzleLog Pro + Backup</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --accent: #bb86fc;
+            --danger: #cf6679;
+            --success: #03dac6;
+            --text: #e1e1e1;
+            --gray: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .app-container { width: 100%; max-width: 450px; padding-bottom: 50px; }
+        
+        h1 { color: var(--accent); text-align: center; font-size: 1.5rem; margin-bottom: 10px; }
+        
+        .backup-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        input {
+            width: 100%;
+            background: #2c2c2c;
+            border: 1px solid var(--gray);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active { opacity: 0.7; }
+        .btn-primary { background: var(--accent); color: #000; width: 100%; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: #000; width: 100%; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; margin-top: 10px; }
+        .btn-small { padding: 5px 10px; font-size: 11px; background: #333; color: #ccc; }
+
+        .puzzle-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .puzzle-info h3 { margin: 0; font-size: 1.1rem; }
+        .puzzle-info p { margin: 4px 0; font-size: 0.8rem; color: #888; }
+
+        .timer-display {
+            font-family: monospace;
+            font-size: 2.5rem;
+            text-align: center;
+            margin: 15px 0;
+            color: var(--success);
+        }
+
+        .history-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--gray);
+            display: none;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            padding: 5px 0;
+            border-bottom: 1px solid #252525;
+        }
+
+        .recording-dot {
+            height: 10px; width: 10px; background: var(--danger);
+            border-radius: 50%; display: inline-block;
+            animation: pulse 1s infinite; margin-right: 5px;
+        }
+
+        @keyframes pulse { 0% {opacity:1} 50% {opacity:0.3} 100% {opacity:1} }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>🧩 PuzzleTracker</h1>
+
+    <div class="backup-bar">
+        <button class="btn btn-small" onclick="exportBackup()">💾 Exportar Copia</button>
+        <button class="btn btn-small" onclick="document.getElementById('importFile').click()">📂 Importar</button>
+        <input type="file" id="importFile" style="display:none" onchange="importBackup(event)">
+    </div>
+
+    <div class="card">
+        <input type="text" id="puzzleName" placeholder="Nombre del puzzle...">
+        <button class="btn btn-primary" onclick="addPuzzle()">Registrar Nuevo Puzzle</button>
+    </div>
+
+    <div id="activeSection"></div>
+    <div id="puzzleList"></div>
+</div>
+
+<script>
+    let puzzles = JSON.parse(localStorage.getItem('puzzleDB_v2')) || [];
+    let timerInterval = null;
+    let startTime = null;
+    let activeId = null;
+
+    // --- FUNCIONES DE COPIA DE SEGURIDAD ---
+    function exportBackup() {
+        if (puzzles.length === 0) return alert("No hay datos para exportar.");
+        
+        const ahora = new Date();
+        const fecha = ahora.toISOString().split('T')[0];
+        const hora = ahora.getHours().toString().padStart(2, '0') + '-' + ahora.getMinutes().toString().padStart(2, '0');
+        const nombreArchivo = `PUZZLE_COPIA_${fecha}_${hora}.json`;
+        
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(puzzles));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", nombreArchivo);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (Array.isArray(importedData)) {
+                    if(confirm("Se sobrescribirán los datos actuales. ¿Continuar?")) {
+                        puzzles = importedData;
+                        saveAndRender();
+                    }
+                }
+            } catch (err) { alert("Error al leer el archivo."); }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- LÓGICA DE LA APP ---
+    function addPuzzle() {
+        const nameInput = document.getElementById('puzzleName');
+        if (!nameInput.value) return;
+        puzzles.unshift({
+            id: Date.now(),
+            name: nameInput.value,
+            startDate: new Date().toLocaleDateString('es-ES'),
+            totalSeconds: 0,
+            completed: false,
+            sessions: []
+        });
+        nameInput.value = '';
+        saveAndRender();
+    }
+
+    function toggleTimer(id) {
+        if (timerInterval) {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const idx = puzzles.findIndex(p => p.id === activeId);
+            puzzles[idx].totalSeconds += elapsed;
+            puzzles[idx].sessions.push({
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                duration: elapsed
+            });
+            clearInterval(timerInterval);
+            timerInterval = null;
+            if (activeId === id) { activeId = null; saveAndRender(); return; }
+        }
+        activeId = id;
+        startTime = Date.now();
+        timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const display = document.getElementById('activeTimer');
+            if (display) display.innerText = formatTime(elapsed);
+        }, 1000);
+        render();
+    }
+
+    function deletePuzzle(id) {
+        if(confirm('¿Borrar este puzzle?')) {
+            if (activeId === id) { clearInterval(timerInterval); activeId = null; }
+            puzzles = puzzles.filter(p => p.id !== id);
+            saveAndRender();
+        }
+    }
+
+    function finishPuzzle(id) {
+        if(activeId === id) toggleTimer(id);
+        const idx = puzzles.findIndex(p => p.id === id);
+        puzzles[idx].completed = true;
+        puzzles[idx].endDate = new Date().toLocaleDateString();
+        saveAndRender();
+    }
+
+    function toggleHistory(id) {
+        const div = document.getElementById(`hist-${id}`);
+        div.style.display = div.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function formatTime(s) {
+        const h = Math.floor(s / 3600).toString().padStart(2, '0');
+        const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+        const sec = (s % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${sec}`;
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('puzzleDB_v2', JSON.stringify(puzzles));
+        render();
+    }
+
+    function render() {
+        const list = document.getElementById('puzzleList');
+        const activeArea = document.getElementById('activeSection');
+        list.innerHTML = ''; activeArea.innerHTML = '';
+
+        puzzles.forEach((p) => {
+            const isWorking = (activeId === p.id);
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="puzzle-header">
+                    <div class="puzzle-info">
+                        <h3>${p.name}</h3>
+                        <p>🗓️ Inicio: ${p.startDate}</p>
+                        <p>⏳ Total: <strong>${formatTime(p.totalSeconds)}</strong></p>
+                    </div>
+                    <button class="btn-danger" style="width:30px; height:30px; border-radius:50%;" onclick="deletePuzzle(${p.id})">✕</button>
+                </div>
+                ${isWorking ? `<div class="timer-display"><span class="recording-dot"></span><span id="activeTimer">00:00:00</span></div>` : ''}
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    ${!p.completed ? `
+                        <button class="btn ${isWorking ? 'btn-danger' : 'btn-success'}" onclick="toggleTimer(${p.id})">${isWorking ? 'Pausar' : 'Continuar'}</button>
+                        <button class="btn btn-primary" onclick="finishPuzzle(${p.id})">Acabar</button>
+                    ` : `<div style="color:var(--success); font-size:0.8rem; width:100%; text-align:center;">Terminado: ${p.endDate} ✅</div>`}
+                </div>
+                <button class="btn btn-outline" onclick="toggleHistory(${p.id})">Historial (${p.sessions.length})</button>
+                <div id="hist-${p.id}" class="history-section">
+                    ${p.sessions.slice().reverse().map(s => `
+                        <div class="session-item"><span>📅 ${s.date}</span><span>⏱️ ${formatTime(s.duration)}</span></div>
+                    `).join('')}
+                </div>
+            `;
+            if (isWorking) activeArea.appendChild(card);
+            else list.appendChild(card);
+        });
+    }
+    render();
+</script>
+</body>
+</html>

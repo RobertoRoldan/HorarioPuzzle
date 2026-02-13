@@ -1,0 +1,18 @@
+{
+  "name": "PuzzleTracker Pro",
+  "short_name": "Puzzles",
+  "description": "Seguimiento de tiempo para puzzles",
+  "start_url": "PUZZLE.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#bb86fc",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063901.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
