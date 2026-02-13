@@ -2,7 +2,7 @@
   "name": "PuzzleTracker Pro",
   "short_name": "Puzzles",
   "description": "Seguimiento de tiempo para puzzles",
-  "start_url": "PUZZLE.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#bb86fc",
