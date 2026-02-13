@@ -9,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3063/3063901.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/extension/default/48px.svg",
+      "sizes": "48x48 72x72 96x96 128x128 256x256 512x512",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
